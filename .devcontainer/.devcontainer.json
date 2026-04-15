@@ -1,12 +1,63 @@
 {
     // https://hub.docker.com/r/microsoft/devcontainers-java
-	"name": "Figma to Vaadin Training",
-    "image": "mcr.microsoft.com/devcontainers/java:21-bookworm",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "vaadin.vaadin-vscode"
-            ]
-        }
+  "name": "Figma to Vaadin With Claude and Figma MCP Training",
+  "image": "ghcr.io/petrixh/claude-container:latest",
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    "--env-file=.devcontainer/.env", //if desired to setup vars in a file instead, comment out containerEnv-entries if used
+  ],
+// If you want to bring env variables from your current environment to the devconatiner
+  // "containerEnv": {
+  //   "SKIP_FIREWALL": "1",
+  //   "GH_TOKEN": "${localEnv:GH_TOKEN}",
+  //   "GIT_USER_NAME": "${localEnv:GIT_USER_NAME}",
+  //   "GIT_USER_EMAIL": "${localEnv:GIT_USER_EMAIL}",
+  //   "NODE_OPTIONS": "--max-old-space-size=4096",
+  //   "CLAUDE_CONFIG_DIR": "/home/node/.claude",
+  //   "PLAYWRIGHT_BROWSERS_PATH": "/opt/playwright-browsers",
+  //   "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD": "1",
+  //   //"VAADIN_PRO_KEY": "${localEnv:VAADIN_PRO_KEY}",
+  //   "NOTIFICATION_URL": "${localEnv:NOTIFICATION_URL}",
+  // },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vscjava.vscode-maven",
+        "vaadin.vaadin-vscode"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "java.configuration.detectJdksAtStart": true
+      }
     }
+  },
+// If you need docker inside the dev container, does open up options for the AI to do all kinds of things... 
+//  "features": {
+//    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+//      "version": "latest",
+//      "enableNonRootDocker": "true",
+//      "moby": "false"
+//    }
+//  },
+  "remoteUser": "node",
+  "mounts": [
+    "source=./m2-cache,target=/home/vscode/.m2,type=bind,consistency=cached",
+    //     "source=claude-code-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=./dot-claude,target=/home/node/.claude,type=bind,consistency=cached"
+  ],
+  "forwardPorts": [
+    9222
+  ],
+  "portsAttributes": {
+    "9222": {
+      "label": "Playwright CDP",
+      "onAutoForward": "silent"
+    }
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  "postStartCommand": "/usr/local/bin/entrypoint.sh"
 }
