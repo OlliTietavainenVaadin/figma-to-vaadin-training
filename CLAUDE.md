@@ -1,83 +1,67 @@
-# AI TOOL GUIDANCE
+# CLAUDE.md
 
-This file provides guidance when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Technology Stack
 
-This is a Vaadin application built with:
-- Java
-- Spring Boot
-- Spring Data JPA with H2 database
+- Java 21, Spring Boot 4, Vaadin 25
+- Spring Data JPA with H2 in-memory database
 - Maven build system
 
 ## Development Commands
 
-### Running the Application
 ```bash
 ./mvnw                           # Start in development mode (default goal: spring-boot:run)
-./mvnw spring-boot:run           # Explicit development mode
-```
-
-The application will be available at http://localhost:8080
-
-### Building for Production
-```bash
-./mvnw -Pproduction package      # Build production JAR
-docker build -t my-application:latest .  # Build Docker image
-```
-
-### Testing
-```bash
 ./mvnw test                      # Run all tests
 ./mvnw test -Dtest=TaskServiceTest  # Run a single test class
 ./mvnw test -Dtest=TaskServiceTest#tasks_are_stored_in_the_database_with_the_current_timestamp  # Run a single test method
+./mvnw -Pproduction package      # Build production JAR
 ```
+
+The application runs at http://localhost:8080 and opens a browser automatically in dev mode.
 
 ## Architecture
 
-This project follows a **feature-based package structure** rather than traditional layered architecture. Code is organized by functional units (features), not by technical layers.
+Feature-based package structure under `com.example`:
 
-### Package Structure
+- **`base.ui`**: Shared UI infrastructure
+  - `MainLayout`: `@Layout`-annotated `AppLayout` with a drawer that auto-populates `SideNav` from `@Menu` annotations on views
+  - `ViewToolbar`: Reusable toolbar `Composite` — takes a title and optional action `Component`s; use `ViewToolbar.group(...)` to wrap related buttons
+- **`examplefeature`**: Reference feature — copy this structure for new features, then delete it when done
 
-- **`com.example.base`**: Reusable components and base classes for all features
-  - `base.ui.MainLayout`: AppLayout with drawer navigation using SideNav, automatically populated from @Menu annotations
-  - `base.ui.component.ViewToolbar`: Reusable toolbar component for views
+### Feature package template
 
-- **`com.example.examplefeature`**: Example feature demonstrating the structure
-  - `Task.java`: JPA entity with validation
-  - `TaskRepository.java`: Spring Data JPA repository
-  - `TaskService.java`: Service layer with @Transactional methods
-  - `ui.TaskListView.java`: Vaadin Flow view component (server-side UI)
-  - `TaskServiceTest.java`: Integration test using @SpringBootTest
+Each feature contains:
+- `MyEntity.java` — JPA entity; validation in setters; `equals`/`hashCode` based on ID only (hashCode returns `getClass().hashCode()` to avoid mutation issues)
+- `MyRepository.java` — `JpaRepository` + `JpaSpecificationExecutor`; use `Slice<T>` (not `Page<T>`) when total count is not needed to avoid an extra COUNT query
+- `MyService.java` — `@Service` with constructor injection; `@Transactional` on writes, `@Transactional(readOnly = true)` on reads
+- `ui/MyView.java` — Vaadin Flow view; `@Route`, `@PageTitle`, `@Menu(order, icon, title)`; Grid lazy loading via `VaadinSpringDataHelpers.toSpringPageRequest(query)`
 
-- **`Application.java`**: Main entry point, annotated with @SpringBootApplication and @Theme("default")
+### Key patterns
 
-### Key Architecture Patterns
+- **Null safety**: `@Nullable` from `org.jspecify.annotations` (not `javax`/`jakarta`)
+- **Sequences**: Entities use `@GeneratedValue(strategy = GenerationType.SEQUENCE)`
+- **Schema**: `spring.jpa.hibernate.ddl-auto=update` in dev — use Flyway in production
+- **Vaadin packages**: `vaadin.allowed-packages` in `application.properties` must include any new top-level package you add
 
-1. **Feature Packages**: Each feature is self-contained with its own UI, business logic, data access, and tests
-2. **Navigation**: Views use `@Route` and `@Menu` annotations. MainLayout automatically builds navigation from menu entries
-3. **Service Layer**: Use `@Transactional` for write operations and `@Transactional(readOnly = true)` for read operations
-4. **Validation**: Domain validation in entity setters (see Task.setDescription)
-5. **Dependency Injection**: Constructor injection throughout (no @Autowired on fields)
+## Testing
 
-## Adding New Features
+Two test patterns are used:
 
-When creating a new feature:
-1. Create a new package under `com.example` (e.g., `com.example.myfeature`)
-2. Include: Entity, Repository, Service, and UI view classes
-3. Use the `examplefeature` package as a reference
-4. Once your features are complete, **delete the `examplefeature` package entirely**
+**Service tests** (`@SpringBootTest`, `@Transactional`): Spring context, real H2 database, `@Autowired` injection. Transactions roll back after each test.
 
-## Vaadin-Specific Notes
+**View tests** (`SpringBrowserlessTest`): Headless Vaadin UI tests from `vaadin:browserless-test-junit6`. Navigate to a view with `navigate(MyView.class)`. Access UI components via `test(view.field)` — **fields in the view class must be package-private** (not `private`) for the test to access them. Use `$(ComponentType.class)` to query rendered components.
 
-- **Server-side rendering**: UI components are Java classes extending Vaadin components
-- **Grid lazy loading**: Use `VaadinSpringDataHelpers.toSpringPageRequest(query)` for pagination
-- **Themes**: Located in `src/main/frontend/themes/default/`, based on Lumo theme
-- **Routing**: `@Route("")` for root path, `@Route("path")` for specific paths
-- **Menu**: `@Menu` annotation controls navigation items (order, icon, title)
-
-## Database
-
-- H2 in-memory database for development
-- JPA entities use `@GeneratedValue(strategy = GenerationType.SEQUENCE)`
-- Entity equality based on ID (see Task.equals/hashCode pattern)
+```java
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@Transactional
+class MyViewTest extends SpringBrowserlessTest {
+    @Test
+    void example() {
+        var view = navigate(MyView.class);
+        test(view.myGrid).size();        // interact with grid
+        test(view.myButton).click();     // click button
+        $(Notification.class).single();  // assert notification appeared
+    }
+}
+```

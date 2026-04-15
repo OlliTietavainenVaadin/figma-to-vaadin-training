@@ -4,6 +4,7 @@
 .settings
 .project
 .classpath
+./devcontainer/.env
 
 *.iml
 .DS_Store
