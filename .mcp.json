@@ -9,6 +9,10 @@
       "args": [
         "@playwright/mcp@latest"
       ]
+    },
+    "Figma MCP remote": {
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
     }
   }
 }
