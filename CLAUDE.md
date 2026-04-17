@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Technology Stack
 
-- Java 21, Spring Boot 4, Vaadin 25
+- Java 21, Spring Boot 4, Vaadin 25.1.1
 - Spring Data JPA with H2 in-memory database
 - Maven build system
 
