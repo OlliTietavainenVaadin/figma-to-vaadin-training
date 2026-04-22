@@ -1,80 +1,90 @@
-# My Application README
+# Figma to Vaadin Training
 
-- [ ] TODO Replace or update this README with instructions relevant to your application
+A hands-on training project for practising **Figma-to-Vaadin translation with Claude Code**. You'll use
+Figma designs as a source of truth and have Claude Code generate Vaadin Flow code from them, following
+a disciplined workflow (inspect design → check annotations → consult Vaadin docs → implement with proper
+components and Lumo theming).
 
-## Project Structure
+Exercise descriptions are provided separately. This repository gives you the environment to do them in.
 
-This project has the following structure:
+## What's in the Box
 
-```
-src
-├── main/java
-│   └── [application package]
-│       ├── base
-│       │   └── ui
-│       │       ├── ViewToolbar.java
-│       │       └── MainLayout.java
-│       ├── examplefeature
-│       │   ├── ui
-│       │   │   └── TaskListView.java
-│       │   ├── Task.java
-│       │   ├── TaskRepository.java
-│       │   └── TaskService.java                
-│       └── Application.java     
-├── main/resources
-│   ├── META-INF
-│   │   └── resources
-│   │       └── styles.css
-│   └── application.properties 
-└── test/java
-    └── [application package]
-        └── examplefeature
-           └── TaskServiceTest.java                 
-```
+- A Vaadin 25 / Spring Boot 4 / Java 21 starter application
+- Two project-local Claude skills under `.claude/skills/` that encode the workflow:
+  - **`figma-to-vaadin`** — translates Figma designs into Vaadin Flow code. Extracts design context,
+    checks component annotations, reviews Vaadin docs, and implements using proper components, themes,
+    and Lumo utility classes instead of raw styles.
+  - **`figma-to-lumo-theme`** — maps Figma design tokens (colors, typography, sizing, shapes) into
+    Lumo CSS custom properties in `src/main/resources/META-INF/resources/styles.css`.
+- Several feature packages under `src/main/java/com/example/` (`customers`, `employees`,
+  `hotels`, `products`, `reports`, `staffallocation`, `employeeprofile`) left in place as
+  **reference outputs** from previous runs of the exercises. Look at them for inspiration, or
+  ignore them.
 
-The main entry point into the application is `Application.java`. This class contains the `main()` method that starts up 
-the Spring Boot application.
+## Prerequisites
 
-The project follows a *feature-based package structure*, organizing code by *functional units* rather than traditional 
-architectural layers. It includes two feature packages: `base` and `examplefeature`.
+- **JDK 21**
+- **Claude Code** with access to the **Figma MCP** and **Vaadin MCP** servers — both are required
+  for the skills to work. The skills call tools like `get_design_context`, `get_variable_defs`,
+  `search_vaadin_docs`, and `get_full_document`.
+- A Figma file for the exercise you're working on (supplied separately)
 
-* The `base` package contains classes meant for reuse across different features, either through composition or 
-  inheritance. You can use them as-is, tweak them to your needs, or remove them.
-* The `examplefeature` package is an example feature package that demonstrates the structure. It represents a 
-  *self-contained unit of functionality*, including UI components, business logic, data access, and an integration test.
-  Once you create your own features, *you'll remove this package*.
+## Running the Application
 
-
-## Starting in Development Mode
-
-To start the application in development mode, import it into your IDE and run the `Application` class. 
-You can also start the application from the command line by running: 
+Start in development mode:
 
 ```bash
 ./mvnw
 ```
 
-## Building for Production
+The app runs at <http://localhost:8080> and opens a browser automatically.
 
-To build the application in production mode, run:
-
-```bash
-./mvnw package
-```
-
-To build a Docker image, run:
+Run tests:
 
 ```bash
-docker build -t my-application:latest .
+./mvnw test
 ```
 
-If you use commercial components, pass the license key as a build secret:
+Build a production JAR:
 
 ```bash
-docker build --secret id=proKey,src=$HOME/.vaadin/proKey .
+./mvnw -Pproduction package
 ```
 
-## Next Steps
+## Project Structure
 
-The [Building Apps](https://vaadin.com/docs/v25/building-apps) guides contain hands-on advice for adding features to 
-your application.
+```
+src/main/java/com/example/
+├── base/ui/              # Shared UI (MainLayout, ViewToolbar)
+├── examplefeature/       # Reference feature — template for new features
+├── customers/            # Reference output from a previous exercise
+├── employees/            #   "
+├── hotels/               #   "
+├── products/             #   "
+├── reports/              #   "
+├── staffallocation/      #   "
+├── employeeprofile/      #   "
+└── Application.java      # Spring Boot entry point
+```
+
+Each feature package follows the same template: entity, repository, service, and a `ui/` package for
+views. See `CLAUDE.md` for the detailed feature template and testing patterns.
+
+Theme customisation lives in `src/main/resources/META-INF/resources/styles.css`. It's referenced via
+`@StyleSheet("styles.css")` on the `AppShellConfigurator` (the Vaadin 25 approach — no `frontend/themes`
+folder).
+
+## How the Skills Get Invoked
+
+Claude Code picks up the skills automatically based on their descriptions. Typical triggers:
+
+- Paste a Figma node URL and ask Claude to implement it → `figma-to-vaadin` runs
+- Ask Claude to apply a Figma file's design tokens to the app's theme → `figma-to-lumo-theme` runs
+
+You can also invoke them explicitly with `/figma-to-vaadin` or `/figma-to-lumo-theme`.
+
+## Further Reading
+
+- `CLAUDE.md` — project conventions (package layout, entity/service/view patterns, testing)
+- [Vaadin 25 Building Apps guides](https://vaadin.com/docs/v25/building-apps)
+- The two `SKILL.md` files under `.claude/skills/` — the full workflow the skills follow
